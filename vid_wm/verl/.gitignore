@@ -126,7 +126,6 @@ tests/e2e/toy_examples/deepspeed/synchronous/output.txt
 logs
 log
 outputs
-debug
 ivideogpt/pretrained_models
 *.gif
 pretrained_models
