@@ -241,6 +241,8 @@ def parse_args():
     parser.add_argument('--tokenizer_micro_batch_size', default=2, type=int)
     parser.add_argument('--reject_repeating', default=False, action='store_true')
 
+    parser.add_argument('--compare_gt_token', default=False, action='store_true')
+
     args = parser.parse_args()
     
     if 'ctx' in args.processor_type:
@@ -304,21 +306,26 @@ def evaluate(args, accelerator, processor, tokenizer, model, eval_dataloader, ev
                     seed=args.seed + j,
                 )
                 
-                generated_tokens = [[] for w in range(batch_size)]
-                for t in range(args.segment_length - 1):
-                    outputs = model.generate(prompt_token_ids=input_tokens,
-                                            sampling_params=sampling_params,
-                                            use_tqdm=False)
-                    for w, output in enumerate(outputs):
-                        out = copy.deepcopy(output.outputs[0].token_ids)
-                        generated_tokens[w] += out
-                        input_tokens[w] += out
-                        # append action tokens
-                        next_actions = model_input["input_ids"][w][len(input_tokens[w]): len(input_tokens[w])+args.action_dim].detach().cpu().numpy().tolist()
-                        input_tokens[w] += next_actions
+                if not args.compare_gt_token:
+                    generated_tokens = [[] for w in range(batch_size)]
+                    for t in range(args.segment_length - 1):
+                        outputs = model.generate(prompt_token_ids=input_tokens,
+                                                sampling_params=sampling_params,
+                                                use_tqdm=False)
+                        for w, output in enumerate(outputs):
+                            out = copy.deepcopy(output.outputs[0].token_ids)
+                            generated_tokens[w] += out
+                            input_tokens[w] += out
+                            # append action tokens
+                            next_actions = model_input["input_ids"][w][len(input_tokens[w]): len(input_tokens[w])+args.action_dim].detach().cpu().numpy().tolist()
+                            input_tokens[w] += next_actions
 
-                generated_tokens = torch.tensor(generated_tokens).to(accelerator.device)
-                output_tokens = generated_tokens.reshape(batch_size, -1, args.tokens_per_frame)
+                    generated_tokens = torch.tensor(generated_tokens).to(accelerator.device)
+                    output_tokens = generated_tokens.reshape(batch_size, -1, args.tokens_per_frame)
+                else:
+                    generated_tokens = model_input["input_ids"][:,args.gen_input_length:].reshape(batch_size, -1, args.action_dim+args.tokens_per_frame)[:,:,:args.tokens_per_frame]
+                    output_tokens = generated_tokens
+                
                 if args.reject_repeating:
                     # repeating = (output_tokens[:, -1] == output_tokens[:, -2]).all(-1)
                     not_repeating_num = (output_tokens[:, -1] != output_tokens[:, -2]).float().sum(-1)
