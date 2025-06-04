@@ -56,7 +56,7 @@ See [`lang_wm`](/lang_wm):
 See [`vid_wm`](/vid_wm):
 
 - Robot manipulation trajectory prediction
-- Application: Real2Sim policy evaluation
+- Application: Real2sim policy evaluation
 
 ## 🎥 Showcases
 

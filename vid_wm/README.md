@@ -15,6 +15,8 @@ cd ..
 pip install -r requirements.txt
 ```
 
+❗ Please make sure that `vllm==0.6.3` is installed, as we do NOT implement interactive rollout for other versions.
+
 ## Data Preparation
 
 Download the RT1 dataset from [Open X-Embodiment](https://github.com/google-deepmind/open_x_embodiment) and extract single episodes as `.npz` files:
@@ -78,6 +80,15 @@ bash examples/grpo_trainer/run_ctx_msp_vgpt.sh \
     actor_rollout_ref.model.path={path to pretrained multi-step pred transformer} \
     trainer.val_before_train=True trainer.test_freq=10 trainer.save_freq=10 \
     actor_rollout_ref.rollout.n=16
+```
+
+After that, you will need the following script to merge the sharded checkpoints and generate an unwrapped model checkpoint in the directory `merged_ckpt`:
+
+```bash
+cd verl
+python merge_sharded_ckpts.py \
+    --ckpt_path {path to sharded checkpoints that ends with 'global_step_%d/actor'} \
+    --config_path {**absolute** path to base model}
 ```
 
 ## Video Prediction Evaluation
